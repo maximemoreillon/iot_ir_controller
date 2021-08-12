@@ -20,7 +20,7 @@
 
 // Information to identify the device
 #define DEVICE_TYPE "ircontroller"
-#define DEVICE_FIRMWARE_VERSION "0.0.3"
+#define DEVICE_FIRMWARE_VERSION "0.0.4"
 
 // Pin mapping
 #define RELAY_PIN 12
@@ -37,6 +37,10 @@
 #define IR_RECEIVER_PIN D6
 #define IR_EMITTER_PIN D5
 #define IR_BUFFER_SIZE 400
+
+// IO
+#define LED_PIN D4
+
 
 // EEPROM
 #define EEPROM_WIFI_SSID_ADDRESS 0
@@ -85,7 +89,10 @@ void setup() {
   
   EEPROM.begin(2048); // Webpages get messed up when bigger than 2048
   pinMode(IR_EMITTER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
   digitalWrite(IR_EMITTER_PIN, LOW);
+  digitalWrite(LED_PIN, HIGH);
+
   wifi_client.setInsecure();
   wifi_setup();
   MQTT_setup();

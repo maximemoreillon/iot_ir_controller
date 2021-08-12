@@ -5,12 +5,14 @@
  */
 
 void start_listening_to_ir(){
+  digitalWrite(LED_PIN, LOW);
   Serial.print("[IR_RX] Listening for IR signal: ");
   Serial.println(selected_ir_signal_address);
   attachInterrupt(digitalPinToInterrupt(IR_RECEIVER_PIN), infrared_receiver_interrupt_handler, CHANGE);
 }
 
 void stop_listening_to_ir(){
+  digitalWrite(LED_PIN, HIGH);
   Serial.print("[IR_RX] Stopped listening for IR signal: ");
   Serial.println(selected_ir_signal_address);
   detachInterrupt(digitalPinToInterrupt(IR_RECEIVER_PIN));

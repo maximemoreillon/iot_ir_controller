@@ -132,7 +132,7 @@ String firmware_update_success = ""
   "<p>Upload successful, rebooting...</p>";
 
 String html_ok = ""
-  "<p>Point your remote at the IR receiver and press the button to record.</p>";
+  "<p>Point your remote at the IR receiver and press the button to record. The LED will turn off once the signal is recorded.</p>";
 
 String html_not_found = ""
   "<p>404 Not found</p>";

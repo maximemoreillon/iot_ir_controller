@@ -41,7 +41,7 @@ void web_server_setup(){
 
 void handle_homepage(AsyncWebServerRequest *request) {
   String html = apply_html_template(get_homepage());
-    request->send(200, "text/html", html);
+  request->send(200, "text/html", html);
 }
 
 void get_settings(AsyncWebServerRequest *request){
