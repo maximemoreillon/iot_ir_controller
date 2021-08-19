@@ -20,7 +20,7 @@
 
 // Information to identify the device
 #define DEVICE_TYPE "ircontroller"
-#define DEVICE_FIRMWARE_VERSION "0.0.7"
+#define DEVICE_FIRMWARE_VERSION "0.0.8"
 
 // Pin mapping
 #define RELAY_PIN 12

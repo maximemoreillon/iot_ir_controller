@@ -74,6 +74,7 @@ void MQTT_connection_manager(){
       outbound_JSON_message["type"] = DEVICE_TYPE;
       outbound_JSON_message["firmware_version"] = DEVICE_FIRMWARE_VERSION;
       outbound_JSON_message["nickname"] = get_device_nickname();
+      outbound_JSON_message["address"] = WiFi.localIP().toString();
 
       char mqtt_last_will[MQTT_MAX_PACKET_SIZE];
       serializeJson(outbound_JSON_message, mqtt_last_will, sizeof(mqtt_last_will));
@@ -158,6 +159,7 @@ void mqtt_publish_state(){
   outbound_JSON_message["type"] = DEVICE_TYPE;
   outbound_JSON_message["nickname"] = get_device_nickname();
   outbound_JSON_message["firmware_version"] = DEVICE_FIRMWARE_VERSION;
+  outbound_JSON_message["address"] = WiFi.localIP().toString();
   
   char mqtt_payload[MQTT_MAX_PACKET_SIZE];
   serializeJson(outbound_JSON_message, mqtt_payload, sizeof(mqtt_payload));
