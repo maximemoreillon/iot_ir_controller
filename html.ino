@@ -49,7 +49,6 @@ String get_homepage(){
     "<h3>Device</h3>"
     "<table>"
       "<tr><th>Device type</th><td>" + String(DEVICE_TYPE) + "</td></tr>"
-      //"<tr><th>Device ID</th><td>"+ String(DEVICE_ID) +"</td></tr>"
       "<tr><th>Device name</th><td>" + get_device_name() + "</td></tr>"
       "<tr><th>Device nickname</th><td>" + get_device_nickname() + "</td></tr>"
       "<tr><th>Firmware version</th><td>"+ String(DEVICE_FIRMWARE_VERSION) +"</td></tr>"
@@ -118,18 +117,15 @@ String firmware_update_form = ""
     "<input type='submit' value='Update'>"
   "</form>";
 
-String wifi_registration_success = ""
-  "<h2>Settings</h2>"
-  "<p>OK, rebooting...</p>";
-
 String wifi_registration_failure = ""
   "<h2>Settings</h2>"
   "<p>Failed to parse WiFi settings</p>";
 
 
-String firmware_update_success = ""
-  "<h2>Firmware update</h2>"
-  "<p>Upload successful, rebooting...</p>";
+String rebooting = ""
+  "<h2>Reboot</h2>"
+  "<p>The device is rebooting...</p>"
+  "<script>setTimeout(() => window.location.replace('/'), 5000)</script>";
 
 String html_ok = ""
   "<p>Point your remote at the IR receiver and press the button to record. The LED will turn off once the signal is recorded.</p>";

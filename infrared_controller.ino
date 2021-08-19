@@ -20,7 +20,7 @@
 
 // Information to identify the device
 #define DEVICE_TYPE "ircontroller"
-#define DEVICE_FIRMWARE_VERSION "0.0.5"
+#define DEVICE_FIRMWARE_VERSION "0.0.7"
 
 // Pin mapping
 #define RELAY_PIN 12
@@ -52,6 +52,7 @@
 #define EEPROM_IR_SIGNAL_OFF_ADDRESS 1100
 
 // WIFI settings
+#define WIFI_STA_CONNECTION_TIMEOUT 20000
 #define WIFI_AP_IP IPAddress(192, 168, 4, 1)
 
 // Web server settings
@@ -69,6 +70,7 @@ DNSServer dns_server;
 // Device
 String device_state = "off";
 String wifi_mode = "STA";
+boolean reboot = false;
 
 // IR
 int selected_ir_signal_address = EEPROM_IR_SIGNAL_ON_ADDRESS;
@@ -97,8 +99,9 @@ void setup() {
   wifi_setup();
   MQTT_setup();
   dns_server.start(DNS_PORT, "*", WIFI_AP_IP);
-  web_server_setup();
   MDNS.begin(get_device_name().c_str());
+  web_server_setup();
+  
 }
 
 
@@ -112,4 +115,6 @@ void loop() {
   
   handle_IR_RX();
   handle_IR_TX();
+
+  handle_reboot();
 }

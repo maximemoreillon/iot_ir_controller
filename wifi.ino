@@ -1,5 +1,3 @@
-#define MAXIMUM_CONNECTION_TIME 20000
-
 boolean wifi_connected(){
   return WiFi.status() == WL_CONNECTED;
 }
@@ -36,7 +34,7 @@ void wifi_setup() {
   }
 
   long now = millis();
-  while(millis() - now < MAXIMUM_CONNECTION_TIME && !wifi_connected()){
+  while(millis() - now < WIFI_STA_CONNECTION_TIMEOUT && !wifi_connected()){
     // Do nothing while connecting
     delay(10);
   }

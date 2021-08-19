@@ -67,13 +67,11 @@ void update_settings(AsyncWebServerRequest *request) {
   save_arg_in_eeprom(request, "mqtt_password", EEPROM_MQTT_PASSWORD_ADDRESS);
   save_arg_in_eeprom(request, "device_nickname", EEPROM_DEVICE_NICKNAME_ADDRESS);
 
-  // Respond to the client
-  String html = apply_html_template(wifi_registration_success);
+  String html = apply_html_template(rebooting);
   request->send(200, "text/html", html);
 
   // Reboot
-  // TODO: delay
-  ESP.restart();
+  delayed_reboot();
    
 }
 
@@ -104,7 +102,7 @@ void handle_update_form(AsyncWebServerRequest *request){
 
 void handleDoUpdate(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
   if (!index){
-    Serial.println("Update");
+    Serial.println("[Update] Update started...");
     size_t content_len = request->contentLength();
     // if filename includes spiffs, update the spiffs partition
     int cmd = (filename.indexOf("spiffs") > -1) ? U_PART : U_FLASH;
@@ -116,21 +114,21 @@ void handleDoUpdate(AsyncWebServerRequest *request, const String& filename, size
 
   if (Update.write(data, len) != len) {
     Update.printError(Serial);
-  } else {
-    Serial.printf("Progress: %d%%\n", (Update.progress()*100)/Update.size());
   }
+//  else {
+//    Serial.printf("Progress: %d%%\n", (Update.progress()*100)/Update.size());
+//  }
 
   if (final) {
-    AsyncWebServerResponse *response = request->beginResponse(302, "text/plain", "Please wait while the device reboots");
-    response->addHeader("Refresh", "20");  
-    response->addHeader("Location", "/");
-    request->send(response);
     if (!Update.end(true)){
       Update.printError(Serial);
-    } else {
-      Serial.println("Update complete");
+      request->send(500, "text/html", apply_html_template(firmware_update_failure));
+    }
+    else {
+      Serial.println("[Update] Update complete");
       Serial.flush();
-      ESP.restart();
+      request->send(200, "text/html", apply_html_template(rebooting));
+      delayed_reboot();
     }
   }
 }
