@@ -20,7 +20,7 @@
 
 // Information to identify the device
 #define DEVICE_TYPE "ircontroller"
-#define DEVICE_FIRMWARE_VERSION "0.0.8"
+#define DEVICE_FIRMWARE_VERSION "0.0.9"
 
 // Pin mapping
 #define RELAY_PIN 12
@@ -34,12 +34,12 @@
 #define MQTT_RETAIN true
 
 // IR
-#define IR_RECEIVER_PIN D6 
-#define IR_EMITTER_PIN D5
+#define IR_RECEIVER_PIN 12 // D6 
+#define IR_EMITTER_PIN 14 // D5
 #define IR_BUFFER_SIZE 400
 
 // IO
-#define LED_PIN D4
+#define LED_PIN 2 // D4
 
 
 // EEPROM

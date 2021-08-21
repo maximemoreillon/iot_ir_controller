@@ -77,6 +77,11 @@ String get_homepage(){
       "<tr><th>Status topic</th><td>" + get_mqtt_status_topic() + "</td></tr>"
       "<tr><th>Command topic</th><td>" + get_mqtt_command_topic() + "</td></tr>"
     "</table>"
+    "<h3>IR signal</h3>"
+    "<table>"
+      "<tr><th>ON signal length: </th><td>" + String(read_int_from_eeprom(EEPROM_IR_SIGNAL_ON_ADDRESS)) + "</td></tr>"
+      "<tr><th>OFF signal length: </th><td>" + String(read_int_from_eeprom(EEPROM_IR_SIGNAL_OFF_ADDRESS)) + "</td></tr>"
+    "</table>"
     ;
 }
   

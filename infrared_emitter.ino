@@ -30,7 +30,8 @@ void handle_IR_TX() {
   for(int i = 0; i < IR_signal_length; i++){
     // +2 because code length is stored in position 0
     int IR_signal_bit = read_int_from_eeprom(selected_ir_signal_address + 2*i + 2);
-    IR_signal[i] = IR_signal_bit;
+    //IR_signal[i] = IR_signal_bit;
+    IR_signal[i] = abs(IR_signal_bit);
   }
 
   // Replay signal using the IR LED
