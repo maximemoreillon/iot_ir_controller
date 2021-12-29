@@ -1,6 +1,9 @@
 void MQTT_setup(){
-  Serial.println(F("[MQTT] MQTT setup"));
-  MQTT_client.setServer(MQTT_BROKER_ADDRESS, MQTT_PORT);
+  Serial.print(F("[MQTT] Initializing MQTT with broker "));
+  Serial.print(config.mqtt.broker.host);
+  Serial.print(":");
+  Serial.println(config.mqtt.broker.port);
+  MQTT_client.setServer(config.mqtt.broker.host.c_str(), config.mqtt.broker.port);
   MQTT_client.setCallback(mqtt_message_callback);
 }
 
@@ -8,9 +11,16 @@ boolean mqtt_connected(){
   return MQTT_client.connected();
 }
 
+String get_mqtt_username(){
+  return config.mqtt.username;
+}
+
+String get_mqtt_password(){
+  return config.mqtt.password;
+}
+
 String get_mqtt_base_topic(){
-  String mqtt_username = read_string_from_eeprom(EEPROM_MQTT_USERNAME_ADDRESS);
-  return "/" + mqtt_username + "/" + get_device_name();
+  return "/" + get_mqtt_username() + "/" + get_device_name();
 }
 
 String get_mqtt_status_topic(){
@@ -20,13 +30,9 @@ String get_mqtt_status_topic(){
 String get_mqtt_command_topic(){
   return get_mqtt_base_topic() + "/command";
 }
-String get_mqtt_username(){
-  return read_string_from_eeprom(EEPROM_MQTT_USERNAME_ADDRESS);
-}
 
-String get_mqtt_password(){
-  return read_string_from_eeprom(EEPROM_MQTT_PASSWORD_ADDRESS);
-}
+
+
 
 void MQTT_connection_manager(){
 
@@ -65,7 +71,6 @@ void MQTT_connection_manager(){
       
       Serial.println(F("[MQTT] Connecting"));
 
-      String mqtt_password = read_string_from_eeprom(EEPROM_MQTT_PASSWORD_ADDRESS);
 
       // Last will
       StaticJsonDocument<MQTT_MAX_PACKET_SIZE> outbound_JSON_message;
@@ -82,7 +87,7 @@ void MQTT_connection_manager(){
       MQTT_client.connect(
         get_device_name().c_str(),
         get_mqtt_username().c_str(), 
-        mqtt_password.c_str(),
+        get_mqtt_password().c_str(),
         get_mqtt_status_topic().c_str(),
         MQTT_QOS,
         MQTT_RETAIN,
@@ -102,6 +107,7 @@ void mqtt_message_callback(char* topic, byte* payload, unsigned int payload_leng
   Serial.println("");
 
   // Create a JSON object to hold the message
+  // Note: size is limited by MQTT library
   StaticJsonDocument<MQTT_MAX_PACKET_SIZE> inbound_JSON_message;
 
   // Copy the message into the JSON object

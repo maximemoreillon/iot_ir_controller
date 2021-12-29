@@ -11,45 +11,31 @@
 #include <WiFiClientSecure.h> // Wifi client, used by MQTT
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <EEPROM.h> // EEPROM for saving settings
 #include <DNSServer.h> // DNS server to redirect wifi clients to the web server
 #include <ArduinoJson.h> // JSON, used for the formatting of messages sent to the server
 #include <Updater.h>
 #include <ESP8266mDNS.h>
+#include <FS.h>
+#include <LittleFS.h>
 
 
 // Information to identify the device
 #define DEVICE_TYPE "ircontroller"
-#define DEVICE_FIRMWARE_VERSION "0.0.9"
+#define DEVICE_FIRMWARE_VERSION "0.2.0"
 
-// Pin mapping
-#define RELAY_PIN 12
-#define LED_PIN 13
+// IO
+#define LED_PIN 2 // D4
+#define IR_RECEIVER_PIN 12 // D6 
+#define IR_EMITTER_PIN 14 // D5
 
 // MQTT settings
 #define MQTT_RECONNECT_PERIOD 1000
-#define MQTT_BROKER_ADDRESS "mqtt.iot.maximemoreillon.com"
-#define MQTT_PORT 30883
 #define MQTT_QOS 1
 #define MQTT_RETAIN true
 
 // IR
-#define IR_RECEIVER_PIN 12 // D6 
-#define IR_EMITTER_PIN 14 // D5
-#define IR_BUFFER_SIZE 400
+#define IR_BUFFER_SIZE 1024
 
-// IO
-#define LED_PIN 2 // D4
-
-
-// EEPROM
-#define EEPROM_WIFI_SSID_ADDRESS 0
-#define EEPROM_WIFI_PASSWORD_ADDRESS 50
-#define EEPROM_MQTT_USERNAME_ADDRESS 100
-#define EEPROM_MQTT_PASSWORD_ADDRESS 150
-#define EEPROM_DEVICE_NICKNAME_ADDRESS 200
-#define EEPROM_IR_SIGNAL_ON_ADDRESS 250
-#define EEPROM_IR_SIGNAL_OFF_ADDRESS 1100
 
 // WIFI settings
 #define WIFI_STA_CONNECTION_TIMEOUT 20000
@@ -73,28 +59,53 @@ String wifi_mode = "STA";
 boolean reboot = false;
 
 // IR
-int selected_ir_signal_address = EEPROM_IR_SIGNAL_ON_ADDRESS;
+//int selected_ir_signal_address = EEPROM_IR_SIGNAL_ON_ADDRESS;
+String selected_ir_signal_name = "on";
 
 // IR RX
-volatile unsigned int IR_RX_buffer[IR_BUFFER_SIZE]; //stores timings - volatile because changed by ISR
-volatile unsigned int IR_RX_index = 0; //Pointer thru IR_RX_buffer - volatile because changed by ISR
+volatile long IR_buffer[IR_BUFFER_SIZE]; //stores timings - volatile because changed by ISR
+volatile unsigned int IR_RX_index = 0; //Pointer through IR_buffer - volatile because changed by ISR
 volatile long IR_RX_last_change; // volatile because changed by ISR
 
 // IR TX
 boolean IR_TX_started = false;
+
+// Need a custom structure to hold device config
+struct WifiConfig {
+  String ssid;
+  String password;
+};
+
+struct MqttBrokerConfig {
+  String host;
+  int port;
+};
+
+struct MqttConfig {
+  MqttBrokerConfig broker;
+  String username;
+  String password;
+};
+
+struct DeviceConfig {
+  String nickname;
+  WifiConfig wifi;
+  MqttConfig mqtt;
+};
+
+DeviceConfig config;
+
+
 
 void setup() {
   delay(10);
   Serial.begin(115200);
   Serial.println("");
   Serial.println(F("Iot IR controller"));
-  
-  EEPROM.begin(2048); // Webpages get messed up when bigger than 2048
-  pinMode(IR_EMITTER_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(IR_EMITTER_PIN, LOW);
-  digitalWrite(LED_PIN, HIGH);
 
+  io_setup();
+  spiffs_setup();
+  get_config_from_spiffs();
   wifi_client.setInsecure();
   wifi_setup();
   MQTT_setup();
@@ -110,11 +121,13 @@ void loop() {
   wifi_connection_manager();
   MQTT_connection_manager();
   MQTT_client.loop();
-  dns_server.processNextRequest();
-  MDNS.update();
+  //dns_server.processNextRequest();
+  //MDNS.update();
   
   handle_IR_RX();
   handle_IR_TX();
+
+  
 
   handle_reboot();
 }

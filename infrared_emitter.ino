@@ -1,10 +1,10 @@
 void IR_send_on(){
-  selected_ir_signal_address = EEPROM_IR_SIGNAL_ON_ADDRESS;
+  selected_ir_signal_name = "on";
   IR_TX_started = true;
 }
 
 void IR_send_off(){
-  selected_ir_signal_address = EEPROM_IR_SIGNAL_OFF_ADDRESS;
+  selected_ir_signal_name = "off";
   IR_TX_started = true;
 }
 
@@ -12,54 +12,64 @@ void handle_IR_TX() {
 
   if(!IR_TX_started) return;
   
-  Serial.print("[IR_TX] Sending signal from address ");
-  Serial.print(selected_ir_signal_address);
+  Serial.print("[IR_TX] Sending signal: ");
+  Serial.println(selected_ir_signal_name);
 
-  int IR_signal_length = read_int_from_eeprom(selected_ir_signal_address);
+  const String file_name = "/" + selected_ir_signal_name + ".txt";
 
-  Serial.print(" (length: ");
-  Serial.print(IR_signal_length);
-  Serial.print("): ");
-
-  // Safeguard against EEPROM corruption
-  IR_signal_length = min(IR_signal_length,IR_BUFFER_SIZE);
-
-  int IR_signal[IR_signal_length];
-
-  // Read IR signal from EEPROM and store it in temporary array IR_signal
-  for(int i = 0; i < IR_signal_length; i++){
-    // +2 because code length is stored in position 0
-    int IR_signal_bit = read_int_from_eeprom(selected_ir_signal_address + 2*i + 2);
-    //IR_signal[i] = IR_signal_bit;
-    IR_signal[i] = abs(IR_signal_bit);
+  File file = LittleFS.open(file_name, "r");
+  if (!file) {
+    Serial.println("[SPIFFS] Failed to open file for reading");
+    IR_TX_started = false;
+    return;
   }
 
+  Serial.print("[SPIFFS] Loaded signal from: ");
+  Serial.println(file_name);
+
+  int index = 0;
+  
+  while ( file.available() ) {
+    long value = file.readStringUntil('\n').toInt();
+    IR_buffer[index] = value;
+    index ++;
+  }
+
+  file.close();
+
+  
+
+  int IR_signal_length = index;
+  Serial.print("[IR_TX] Replaying signal of length ");
+  Serial.println(IR_signal_length);
+
   // Replay signal using the IR LED
+  // THIS TRIGGERS THE WATCHDOG
   for(int i = 0; i < IR_signal_length; i++){
-    int IR_signal_bit = IR_signal[i];
-    if(i % 2 == 0) IR_send_pulse(IR_signal_bit);
+    long IR_signal_bit = IR_buffer[i];
+    if(i % 2 == 0) IR_send_pulse(IR_signal_bit); // problem here
     else IR_send_pause(IR_signal_bit);
   }
 
-  // Print signal to Serial for debugging
-  for(int i = 0; i < IR_signal_length; i++){
-    int IR_signal_bit = IR_signal[i];
-    Serial.print(IR_signal_bit);
-    Serial.print(",");
-  }
-  Serial.println("");
-
-
+  
   IR_TX_started = false;
+  
+  Serial.println("[IR_TX] Sending signal complete");
+  
 }
 
 
-void IR_send_pulse(int pulse_length) {
+void IR_send_pulse(long pulse_length) {
   // Send one pulse of a given length
-  
+
+  // Pin must be toggling between ON and OFF at 37-38kHz
+  // This variable keeps track of wether the pin is ON or OFF
   int IR_on = 0;
+  
   long startMicros = micros();
   while (micros() < (startMicros + pulse_length)){
+
+    
     
     // toggle pin and wait 26 us to make it a pulse
     IR_on = 1 - IR_on;
@@ -76,7 +86,9 @@ void IR_send_pulse(int pulse_length) {
   digitalWrite(IR_EMITTER_PIN, LOW);
 }
 
-void IR_send_pause(int pause_length) {
+void IR_send_pause(long pause_length) {
   // A pause is just not doing anything for a given amount of time
+  digitalWrite(IR_EMITTER_PIN, LOW);
   delayMicroseconds(pause_length);
+  
 }

@@ -4,7 +4,7 @@ String get_device_name(){
 }
 
 String get_device_nickname(){
-  return read_string_from_eeprom(EEPROM_DEVICE_NICKNAME_ADDRESS);
+  return config.nickname;
 }
 
 void delayed_reboot(){

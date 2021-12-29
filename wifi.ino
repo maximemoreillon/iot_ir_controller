@@ -7,38 +7,41 @@ String get_softap_ssid(){
 }
 
 
-void wifi_setup() {
-  
-  Serial.println(F("[WiFi] Wifi starting"));
-
+void attempt_sta(){
   
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.hostname(get_device_name());
 
-  String wifi_sta_ssid = get_wifi_ssid_from_eeprom();
-  String wifi_sta_password = get_wifi_password_from_eeprom();
-
+  
+  // TODO: Test if key exists
+  String wifi_sta_ssid = config.wifi.ssid;
+  String wifi_sta_password = config.wifi.password;
+  
   // Debugging
   Serial.print("[WiFi] Attempting connection to ");
   Serial.print(wifi_sta_ssid);
   Serial.print(", with password: ");
   Serial.println(wifi_sta_password);
 
-  // Connect to WiFi with provided settings
-    if(wifi_sta_password == ""){
-    WiFi.begin(wifi_sta_ssid.c_str());
-  }
-  else {
-    WiFi.begin(wifi_sta_ssid.c_str(), wifi_sta_password.c_str());
-  }
+  // Use password or not depending of if provided
+  if(wifi_sta_password == "") WiFi.begin(wifi_sta_ssid.c_str());
+  else WiFi.begin(wifi_sta_ssid.c_str(), wifi_sta_password.c_str());
 
+  // Attempt connection for a given amount of time
   long now = millis();
   while(millis() - now < WIFI_STA_CONNECTION_TIMEOUT && !wifi_connected()){
-    // Do nothing while connecting
-    delay(10);
+    delay(10); // Do nothing while connecting
   }
+  
+}
 
+void wifi_setup() {
+  
+  Serial.println(F("[WiFi] Wifi starting"));
+
+
+  attempt_sta();
   
 
   if(wifi_connected()){

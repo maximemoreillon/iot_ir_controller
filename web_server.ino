@@ -11,23 +11,25 @@ public:
   }
 
   void handleRequest(AsyncWebServerRequest *request) {
-    String html = apply_html_template(get_homepage());
-    request->send(200, "text/html", html);
+    request->send(LittleFS, "/index.html", String(), false, processor);
   }
 };
+
+String reboot_html = ""
+  "Rebooting..."
+  "<script>setTimeout(() => window.location.replace('/'), 10000)</script>";
+
 
 void web_server_setup(){
   Serial.println(F("[Web server] Web server initialization"));
   
   web_server.on("/", HTTP_GET, handle_homepage);
+  web_server.on("/styles.css", HTTP_GET, handle_styles);
   
-  web_server.on("/settings", HTTP_GET, get_settings);
   web_server.on("/settings", HTTP_POST, update_settings);
 
   web_server.on("/record", HTTP_GET, handle_record_ir);
 
-  
-  web_server.on("/update", HTTP_GET, handle_update_form);
   web_server.on("/update", HTTP_POST,
     [](AsyncWebServerRequest *request) {},
     [](AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data,
@@ -39,36 +41,53 @@ void web_server_setup(){
   web_server.begin();
 }
 
+
+void handle_styles(AsyncWebServerRequest *request) {
+  request->send(LittleFS, "/styles.css", "text/css");
+}
+
 void handle_homepage(AsyncWebServerRequest *request) {
-  String html = apply_html_template(get_homepage());
-  request->send(200, "text/html", html);
+  request->send(LittleFS, "/index.html", String(), false, processor);
 }
 
-void get_settings(AsyncWebServerRequest *request){
-  String html = apply_html_template(get_settings_form());
-  request->send(200, "text/html", html);
+void handle_not_found(AsyncWebServerRequest *request){
+  request->send(404, "text/html", "Not found");
 }
 
+void save_config(AsyncWebServerRequest *request){
+  DynamicJsonDocument doc(1024);
+  doc["nickname"] = request->arg("nickname");
+  
+  JsonObject wifi  = doc.createNestedObject("wifi");
+  
+  wifi["ssid"] = request->arg("wifi_ssid");
+  wifi["password"] = request->arg("wifi_password");
 
-void save_arg_in_eeprom(AsyncWebServerRequest *request, String arg_name, int address){
-  if(!request->hasArg(arg_name.c_str())) return;
-  String arg_value = request->arg(arg_name.c_str());
-  Serial.println(arg_value);
-  write_string_to_eeprom(arg_value, address);
-  Serial.println("[EEPROM] Saving " + arg_name + " : " + arg_value);
+  JsonObject mqtt  = doc.createNestedObject("mqtt");
+  mqtt["username"] = request->arg("mqtt_username");
+  mqtt["password"] = request->arg("mqtt_password");
+
+  JsonObject broker  = mqtt.createNestedObject("broker");
+  broker["host"] = request->arg("mqtt_broker_host");
+  broker["port"] = request->arg("mqtt_broker_port");
+
+  File configFile = LittleFS.open("/config.json", "w");
+  if (!configFile) {
+    Serial.println("[SPIFFS] Failed to open config file for writing");
+    return;
+  }
+
+  serializeJson(doc, configFile);
+  Serial.println("[SPIFFS] Finished writing config file");
 }
+
 void update_settings(AsyncWebServerRequest *request) {
 
   // TODO: Check if all arguments are set
 
-  save_arg_in_eeprom(request, "wifi_ssid", EEPROM_WIFI_SSID_ADDRESS);
-  save_arg_in_eeprom(request, "wifi_password", EEPROM_WIFI_PASSWORD_ADDRESS);
-  save_arg_in_eeprom(request, "mqtt_username", EEPROM_MQTT_USERNAME_ADDRESS);
-  save_arg_in_eeprom(request, "mqtt_password", EEPROM_MQTT_PASSWORD_ADDRESS);
-  save_arg_in_eeprom(request, "device_nickname", EEPROM_DEVICE_NICKNAME_ADDRESS);
+  save_config(request);
 
-  String html = apply_html_template(rebooting);
-  request->send(200, "text/html", html);
+  request->send(200, "text/html", reboot_html);
 
   // Reboot
   delayed_reboot();
@@ -78,27 +97,20 @@ void update_settings(AsyncWebServerRequest *request) {
 void handle_record_ir(AsyncWebServerRequest *request){
 
   int paramsNr = request->params();
+
+  // Select if recording ON or OFF signal
   if(request->hasParam("signal")){
     AsyncWebParameter* p = request->getParam("signal");
-    if(p->value() == "on") selected_ir_signal_address = EEPROM_IR_SIGNAL_ON_ADDRESS;
-    if(p->value() == "off") selected_ir_signal_address = EEPROM_IR_SIGNAL_OFF_ADDRESS;
+    selected_ir_signal_name = p->value();
   }
-  
 
   start_listening_to_ir();
-  String html = apply_html_template(html_ok);
-  request->send(404, "text/html", html);
-}
-
-void handle_not_found(AsyncWebServerRequest *request){
-  String html = apply_html_template(html_not_found);
-  request->send(404, "text/html", html);
-}
-
-void handle_update_form(AsyncWebServerRequest *request){
-  String html = apply_html_template(firmware_update_form);
+  String html = "<p>Point your remote at the IR receiver and press the button to record. The LED will turn off once the signal is recorded.</p>";
   request->send(200, "text/html", html);
 }
+
+
+
 
 void handleDoUpdate(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
   if (!index){
@@ -122,12 +134,12 @@ void handleDoUpdate(AsyncWebServerRequest *request, const String& filename, size
   if (final) {
     if (!Update.end(true)){
       Update.printError(Serial);
-      request->send(500, "text/html", apply_html_template(firmware_update_failure));
+      request->send(500, "text/html", "Firmware update failed");
     }
     else {
       Serial.println("[Update] Update complete");
       Serial.flush();
-      request->send(200, "text/html", apply_html_template(rebooting));
+      request->send(200, "text/html", reboot_html);
       delayed_reboot();
     }
   }
