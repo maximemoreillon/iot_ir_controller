@@ -15,7 +15,7 @@ void handle_IR_TX() {
   Serial.print("[IR_TX] Sending signal: ");
   Serial.println(selected_ir_signal_name);
 
-  const String file_name = "/" + selected_ir_signal_name + ".txt";
+  const String file_name = "/signals/" + selected_ir_signal_name + ".txt";
 
   File file = LittleFS.open(file_name, "r");
   if (!file) {

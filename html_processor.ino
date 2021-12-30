@@ -11,5 +11,5 @@ String processor(const String& var){
   else if(var == "MQTT_PASSWORD") return config.mqtt.password;
   else if(var == "WIFI_SSID") return config.wifi.ssid;
   else if(var == "WIFI_SSID") return config.wifi.password;
-
+  return String();
 }

@@ -1,18 +1,17 @@
 #define U_PART U_FS
 
 class CaptiveRequestHandler : public AsyncWebHandler {
-public:
-  CaptiveRequestHandler() {}
-  virtual ~CaptiveRequestHandler() {}
-
-  bool canHandle(AsyncWebServerRequest *request){
-    //request->addInterestingHeader("ANY");
-    return true;
-  }
-
-  void handleRequest(AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/index.html", String(), false, processor);
-  }
+  public:
+    CaptiveRequestHandler() {}
+    virtual ~CaptiveRequestHandler() {}
+  
+    bool canHandle(AsyncWebServerRequest *request){
+      return true;
+    }
+  
+    void handleRequest(AsyncWebServerRequest *request) {
+      request->send(LittleFS, "/www/index.html", String(), false, processor);
+    }
 };
 
 String reboot_html = ""
@@ -22,32 +21,29 @@ String reboot_html = ""
 
 void web_server_setup(){
   Serial.println(F("[Web server] Web server initialization"));
+
   
-  web_server.on("/", HTTP_GET, handle_homepage);
-  web_server.on("/styles.css", HTTP_GET, handle_styles);
-  
+  web_server.serveStatic("/", LittleFS, "/www")
+    .setDefaultFile("index.html")
+    .setTemplateProcessor(processor);
+
+  web_server.serveStatic("/signals/", LittleFS, "/signals");
+    
   web_server.on("/settings", HTTP_POST, update_settings);
-
-  web_server.on("/record", HTTP_GET, handle_record_ir);
-
   web_server.on("/update", HTTP_POST,
     [](AsyncWebServerRequest *request) {},
     [](AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data,
                   size_t len, bool final) {handleDoUpdate(request, filename, index, data, len, final);}
   );
 
+  web_server.on("/record", HTTP_GET, handle_record_ir);
+
   web_server.onNotFound(handle_not_found);
+
+  // Captive portal
   web_server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER);
+  
   web_server.begin();
-}
-
-
-void handle_styles(AsyncWebServerRequest *request) {
-  request->send(LittleFS, "/styles.css", "text/css");
-}
-
-void handle_homepage(AsyncWebServerRequest *request) {
-  request->send(LittleFS, "/index.html", String(), false, processor);
 }
 
 void handle_not_found(AsyncWebServerRequest *request){

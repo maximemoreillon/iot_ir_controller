@@ -22,38 +22,40 @@ void stop_listening_to_ir(){
 
 void handle_IR_RX(){
 
-  if(!IR_RX_index || ( ( millis() - IR_RX_last_change) < 1000) ) return;
+  if(IR_RX_index && ( ( millis() - IR_RX_last_change) > 1000) ){
+
   
-  Serial.println("[IR_RX] IR signal finished");
-  stop_listening_to_ir();
-
-  unsigned int code_length = IR_RX_index;
-
-  Serial.print("[IR_RX] Signal length: ");
-  Serial.println(code_length);
-
-  const String file_name = "/" + selected_ir_signal_name + ".txt";
-
-  File file = LittleFS.open(file_name, "w");
-  if (!file) {
-    Serial.println("Failed to open file for writing");
+    Serial.println("[IR_RX] IR signal finished");
+    stop_listening_to_ir();
+  
+    unsigned int code_length = IR_RX_index;
+  
+    Serial.print("[IR_RX] Signal length: ");
+    Serial.println(code_length);
+  
+    const String file_name = "/signals/" + selected_ir_signal_name + ".txt";
+  
+    File file = LittleFS.open(file_name, "w");
+    if (!file) {
+      Serial.println("Failed to open file for writing");
+      IR_RX_index = 0;
+      return;
+    }
+  
+    // Save code to SPIFFS
+    for (int i = 0; i < code_length; i++) {
+      file.println(IR_buffer[i]);
+    }
+    
+    file.close();
+  
+    Serial.print("[SPIFFS] Saved signal as: ");
+    Serial.println(file_name);
+  
+    // Reset the index
     IR_RX_index = 0;
-    return;
+
   }
-
-  // Save code to SPIFFS
-  for (int i = 0; i < code_length; i++) {
-    file.println(IR_buffer[i]);
-  }
-  
-  file.close();
-
-  Serial.print("[SPIFFS] Saved signal as: ");
-  Serial.println(file_name);
-
-  // Reset the index
-  IR_RX_index = 0;
-
   
 
 }
