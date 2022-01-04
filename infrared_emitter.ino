@@ -1,11 +1,15 @@
 void IR_send_on(){
   selected_ir_signal_name = "on";
   IR_TX_started = true;
+  iot_kernel.device_state = "on";
+  iot_kernel.mqtt_publish_state();
 }
 
 void IR_send_off(){
   selected_ir_signal_name = "off";
   IR_TX_started = true;
+  iot_kernel.device_state = "off";
+  iot_kernel.mqtt_publish_state();
 }
 
 void handle_IR_TX() {
@@ -38,17 +42,34 @@ void handle_IR_TX() {
   file.close();
 
   
-
   int IR_signal_length = index;
   Serial.print("[IR_TX] Replaying signal of length ");
   Serial.println(IR_signal_length);
 
   // Replay signal using the IR LED
-  // THIS TRIGGERS THE WATCHDOG
-  for(int i = 0; i < IR_signal_length; i++){
+
+  //long max_bit_length = 16383;
+  long max_bit_length = 50000;
+
+  // NOTE: Starting at 1 because first timing is irrelevant 
+  // Bit 1 is the actual first pulse
+  for(int i = 1; i < IR_signal_length; i++){
+    
     long IR_signal_bit = IR_buffer[i];
-    if(i % 2 == 0) IR_send_pulse(IR_signal_bit); // problem here
-    else IR_send_pause(IR_signal_bit);
+
+    // guarding against large values
+    if(IR_signal_bit > max_bit_length) {
+      Serial.print("[IR TX] Signal bit ");
+      Serial.print(i);
+      Serial.print(" is too long: ");
+      Serial.print(IR_signal_bit);
+      Serial.println();
+      IR_signal_bit = max_bit_length;
+    }
+
+    // Every two bit is a pause, the other is a pulse
+    if(i % 2 == 0) IR_send_pause(IR_signal_bit);
+    else IR_send_pulse(IR_signal_bit);
   }
 
   
@@ -68,8 +89,6 @@ void IR_send_pulse(long pulse_length) {
   
   long startMicros = micros();
   while (micros() < (startMicros + pulse_length)){
-
-    
     
     // toggle pin and wait 26 us to make it a pulse
     IR_on = 1 - IR_on;
